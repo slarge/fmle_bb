@@ -248,20 +248,24 @@ setMethod('fmle_bb',
             }
             
             ## START PARALLEL STUFF ##
+            unregister <- function() {
+              env <- foreach:::.foreachGlobals
+              rm(list=ls(name=env), pos=env)
+            } # close unregister function
 
-            # inParallel = TRUE
-            # preconvert = FALSE
-            if(inParallel == TRUE) 
-            {
-              # library(doParallel)
-              detectedCores <- parallel::detectCores() - 1
+            if(inParallel == TRUE) {
+              #
+              detectedCores <- parallel::detectCores() - 2
               cl <- parallel::makeCluster(detectedCores)
-              doParallel::registerDoParallel(cl)
-            } else {
+              doParallel::registerDoParallel(cores = cl)
+              #
+            } # Close inParallel == TRUE
+            # 
+            # Register a sequential backend
+            if(inParallel == FALSE) {
               foreach::registerDoSEQ()
-            }
-            
-            
+            } # Close inParallel == FALSE
+            # 
             
             # it = 1
             # dat <- list(start = start,
@@ -301,9 +305,18 @@ setMethod('fmle_bb',
                                warning("optimizer could not achieve convergence")
                              }
                              return(out)
-                             stopImplicitCluster()
                            } # Close FOREACH
-
+            
+            if(inParallel == TRUE){
+              parallel::stopCluster(cl = cl)
+            } # close inParallel == TRUE
+            if(inParallel == FALSE){ 
+              foreach::registerDoSEQ()
+            } # close inParallel == FALSE
+            unregister()
+            stopImplicitCluster()
+            # 
+            
             # output
             for(ir in 1:iterReps) {
 
