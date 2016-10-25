@@ -1,7 +1,7 @@
 rm(list = ls())
 library(doParallel)
 library(FLCore)
-library(microbenchmark)
+library(rbenchmark)
 # 
 # 1) figure out a way to import and export FLStock objects
 # 2) figure out the best way to have a function and input for optimization
@@ -15,7 +15,7 @@ model(ple4SR)<-bevholt()
 
 setSize <- c(2, 3, 4, 5)
 resultsDF <- data.frame()
-
+# size = 5
 # Loop through the set sizes and perform sub-experiment
 for(s in setSize) {
 
@@ -24,18 +24,19 @@ for(s in setSize) {
   ple4SR_size <- propagate(ple4SR, iter = size)
 
   # Run performance test
-  results <- microbenchmark::microbenchmark(FLCore::fmle(ple4SR_size),
-                                            fmle_bb(ple4SR_size, inParallel = TRUE),
-                                            fmle_bb(ple4SR_size, inParallel = FALSE), 
-                                            times = 5, unit="ms")
-  
+  results <- benchmark(baseFLR     <- FLCore::fmle(ple4SR_size),
+                       fmle_bb_par <- fmle_bb(ple4SR_size, inParallel = TRUE),
+                       fmle_bb_seq <- fmle_bb(ple4SR_size, inParallel = FALSE),
+                       replications = 2,
+                       columns = c("test", "elapsed", "replications"))
+
   # Save results
-  agSum <- summary(results)
-  agSumPlus <- data.frame(agSum, count = size) 
+  # agSum <- summary(results)
+  agSumPlus <- data.frame(results, count = size) 
   
   resultsDF <- rbind(resultsDF, agSumPlus)
 }
-
+# warnings()
 
 library(ggplot2)
 g2 <- ggplot(data=resultsDF, aes(x=(count)))
